@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Campus Event System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body { background:#0f172a; color:white; font-family:sans-serif; }
+.card { background:white; color:black; padding:16px; border-radius:10px; margin-bottom:10px; }
+</style>
+</head>
+
+<body class="p-6">
+
+<h1 class="text-3xl font-bold mb-6 text-white">🎓 Smart Campus Event System</h1>
+
+<div class="max-w-3xl mx-auto text-black">
+
+<!-- STUDENT DETAILS -->
+<div class="card">
+<h2 class="text-xl font-bold mb-3">Student Details</h2>
+
+<input id="studentName" placeholder="Student Name" class="w-full p-2 mb-2 border">
+
+<select id="year" class="w-full p-2 mb-2 border">
+<option value="">Select Year</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+</select>
+
+<select id="filterDept" class="w-full p-2 mb-2 border">
+<option value="">Department</option>
+<option>CSE</option><option>ECE</option>
+<option>Civil</option><option>Mechanical</option><option>CSD</option>
+</select>
+
+<input type="date" id="filterDate" class="w-full p-2 mb-2 border">
+</div>
+
+<!-- ADD EVENT -->
+<div class="card">
+<h2 class="text-xl font-bold mb-3">Add Event Details</h2>
+
+<select id="eventName" class="w-full p-2 mb-2 border">
+<option value="">Select Event</option>
+<option>Hackathons</option>
+<option>Workshops</option>
+<option>Cultural Events</option>
+<option>Online Games</option>
+</select>
+
+<input id="dob" type="date" class="w-full p-2 mb-2 border">
+
+<select id="organizer" class="w-full p-2 mb-2 border">
+<option value="">Select Organizer</option>
+<option>Dr. Raja</option>
+<option>Dr. Sunil</option>
+<option>Dr. Ramu</option>
+<option>Dr. Sita</option>
+</select>
+
+<select id="location" class="w-full p-2 mb-2 border">
+<option value="">Location</option>
+<option>MG Auditorium</option>
+<option>Research Park</option>
+<option>Vel Murugan Auditorium</option>
+<option>Convocation Hall</option>
+</select>
+
+<button onclick="addEvent()" class="bg-yellow-400 w-full p-2 font-bold">
+Add Event
+</button>
+</div>
+
+<!-- UPCOMING EVENTS -->
+<div class="card">
+<h2 class="text-xl font-bold mb-3">Upcoming Events</h2>
+
+<ul class="list-disc ml-5">
+<li>LAVAZA</li>
+<li>Flashmoob</li>
+<li>Techfest</li>
+</ul>
+</div>
+
+<!-- PROGRESS -->
+<div class="card">
+<h2 class="text-lg font-bold mb-2">📊 Student Progress</h2>
+<p>Events Participated: <span id="participated">0</span></p>
+<p>Certificates Achieved: <span id="certificates">0</span></p>
+</div>
+
+<!-- HISTORY -->
+<div class="card">
+<h2 class="text-lg font-bold mb-2">📜 Booking History</h2>
+<div id="history"></div>
+</div>
+
+</div>
+
+<script>
+// STORAGE
+let events = JSON.parse(localStorage.getItem("events")) || [];
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+// ADD EVENT
+function addEvent() {
+  const event = {
+    id: Date.now(),
+    name: eventName.value,
+    organizer: organizer.value,
+    location: location.value
+  };
+
+  if (!event.name || !event.organizer) {
+    return alert("Fill all fields");
+  }
+
+  events.push(event);
+  localStorage.setItem("events", JSON.stringify(events));
+}
+
+// REGISTER (for history)
+function register(eventName) {
+  const student = studentName.value;
+  if (!student) return alert("Enter Student Name");
+
+  history.push({
+    id: Date.now(),
+    student,
+    event: eventName
+  });
+
+  localStorage.setItem("history", JSON.stringify(history));
+
+  renderHistory();
+  updateStats();
+}
+
+// HISTORY
+function renderHistory() {
+  document.getElementById("history").innerHTML = history.map(h => `
+    <div>
+      ${h.student} → ${h.event}
+      <button onclick="deleteHistory(${h.id})" class="text-red-500 ml-2">
+        Delete
+      </button>
+    </div>
+  `).join("");
+}
+
+// DELETE
+function deleteHistory(id) {
+  history = history.filter(h => h.id !== id);
+  localStorage.setItem("history", JSON.stringify(history));
+  renderHistory();
+  updateStats();
+}
+
+// STATS
+function updateStats() {
+  document.getElementById("participated").innerText = history.length;
+  document.getElementById("certificates").innerText = Math.floor(history.length / 2);
+}
+
+// INIT
+renderHistory();
+updateStats();
+
+</script>
+
+</body>
+</html>
