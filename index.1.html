@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VelTech TechFest</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<style>
+body {
+  background: linear-gradient(135deg, #1a0f2e, #000);
+  color: white;
+  font-family: sans-serif;
+}
+</style>
+</head>
+
+<body class="p-6">
+
+<div class="max-w-5xl mx-auto">
+
+<h1 class="text-4xl font-bold mb-6">VelTech TechFest Booking</h1>
+
+<div class="grid md:grid-cols-2 gap-6">
+
+<!-- ✅ SMALL AVAILABLE TICKETS BOX -->
+<div class="flex items-start justify-center md:justify-start">
+  <div class="bg-white/5 p-4 rounded-xl w-56 text-center border border-white/10">
+    <p class="text-sm text-gray-400">Available Tickets</p>
+    <p id="available" class="text-2xl font-bold text-green-400"></p>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="bg-white/5 p-6 rounded-xl">
+
+  <input id="name" placeholder="Name" class="w-full p-2 mb-3 bg-gray-800"/>
+  <input id="email" placeholder="Email" class="w-full p-2 mb-3 bg-gray-800"/>
+
+  <input id="date" type="date" class="w-full p-2 mb-3 bg-gray-800"/>
+
+  <select id="event" class="w-full p-2 mb-3 bg-gray-800">
+    <option value="">Select Event</option>
+    <option>Hackathons</option>
+    <option>Workshops</option>
+    <option>Symposiums</option>
+    <option>Paper Presentation</option>
+  </select>
+
+  <select id="location" class="w-full p-2 mb-3 bg-gray-800">
+    <option value="">Select Location</option>
+    <option>MG Auditorium</option>
+    <option>Research Park</option>
+    <option>Vel Murugan Auditorium</option>
+    <option>Convocation Hall</option>
+  </select>
+
+  <input id="time" type="time" class="w-full p-2 mb-3 bg-gray-800"/>
+
+  <input id="tickets" type="number" placeholder="Tickets"
+    class="w-full p-2 mb-3 bg-gray-800"/>
+
+  <button onclick="book()" class="w-full bg-yellow-400 text-black p-2 font-bold">
+    Book Ticket
+  </button>
+
+  <p id="error" class="text-red-400 mt-2"></p>
+
+</div>
+
+</div>
+
+<!-- HISTORY -->
+<div class="mt-8 bg-white/5 p-6 rounded-xl">
+  <div class="flex justify-between mb-3">
+    <h2 class="text-xl font-bold">Booking History</h2>
+    <button onclick="clearAll()" class="text-red-400 text-sm">Clear All</button>
+  </div>
+
+  <ul id="history" class="space-y-2 text-sm"></ul>
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center">
+  <div class="bg-gray-900 p-6 rounded-xl text-center w-80">
+    <h2 class="text-xl font-bold mb-2">Booking Confirmed</h2>
+    <p id="summary"></p>
+    <p id="details" class="text-yellow-400 mt-2"></p>
+
+    <canvas id="qr" class="mx-auto mt-4"></canvas>
+
+    <button onclick="closeModal()" class="mt-4 bg-white/10 px-3 py-1">Close</button>
+  </div>
+</div>
+
+<script>
+const TOTAL = 120;
+
+if (!localStorage.getItem("available")) {
+  localStorage.setItem("available", TOTAL);
+}
+if (!localStorage.getItem("bookings")) {
+  localStorage.setItem("bookings", JSON.stringify([]));
+}
+
+let available = parseInt(localStorage.getItem("available"));
+document.getElementById("available").innerText = available;
+
+loadHistory();
+
+function book() {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const date = document.getElementById("date").value;
+  const event = document.getElementById("event").value;
+  const location = document.getElementById("location").value;
+  const time = document.getElementById("time").value;
+  const tickets = parseInt(document.getElementById("tickets").value);
+
+  const error = document.getElementById("error");
+
+  if (!name) return error.innerText = "Enter name";
+  if (!email.includes("@")) return error.innerText = "Enter valid email";
+  if (!date) return error.innerText = "Select date";
+  if (!event) return error.innerText = "Select event";
+  if (!location) return error.innerText = "Select location";
+  if (!time) return error.innerText = "Select time";
+  if (!tickets || tickets <= 0) return error.innerText = "Enter tickets";
+  if (tickets > available) return error.innerText = "Not enough tickets";
+
+  error.innerText = "";
+
+  available -= tickets;
+  localStorage.setItem("available", available);
+  document.getElementById("available").innerText = available;
+
+  const booking = { name, event, location, date, time, tickets };
+
+  let bookings = JSON.parse(localStorage.getItem("bookings"));
+  bookings.push(booking);
+  localStorage.setItem("bookings", JSON.stringify(bookings));
+
+  loadHistory();
+
+  document.getElementById("summary").innerText =
+    `${tickets} ticket(s) booked for ${name}`;
+
+  document.getElementById("details").innerText =
+    `🎯 ${event} | 📅 ${date} | 📍 ${location} | ⏰ ${time}`;
+
+  QRCode.toCanvas(document.getElementById("qr"), JSON.stringify(booking));
+
+  document.getElementById("modal").classList.remove("hidden");
+
+  document.querySelectorAll("input").forEach(i => i.value="");
+  document.getElementById("event").value = "";
+  document.getElementById("location").value = "";
+}
+
+function loadHistory() {
+  const list = document.getElementById("history");
+  list.innerHTML = "";
+
+  const bookings = JSON.parse(localStorage.getItem("bookings"));
+
+  bookings.forEach((b, index) => {
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      ${b.name} - ${b.event} (${b.location})
+      <button onclick="deleteBooking(${index})" class="text-red-400 ml-3">Delete</button>
+    `;
+
+    list.appendChild(li);
+  });
+}
+
+function deleteBooking(index) {
+  let bookings = JSON.parse(localStorage.getItem("bookings"));
+
+  available += bookings[index].tickets;
+
+  bookings.splice(index, 1);
+
+  localStorage.setItem("bookings", JSON.stringify(bookings));
+  localStorage.setItem("available", available);
+
+  document.getElementById("available").innerText = available;
+
+  loadHistory();
+}
+
+function clearAll() {
+  if (!confirm("Delete all bookings?")) return;
+
+  localStorage.setItem("bookings", JSON.stringify([]));
+  localStorage.setItem("available", TOTAL);
+
+  available = TOTAL;
+  document.getElementById("available").innerText = available;
+
+  loadHistory();
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.add("hidden");
+}
+</script>
+
+</body>
+</html>
